@@ -4,8 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -17,8 +20,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.mocarski.apidemo2.data.api.model.GameObjectViewModel
 import com.mocarski.brian.beanandroid.ui.theme.BeanAndroidTheme
 
 enum class ShownScreen {
@@ -28,21 +33,24 @@ enum class ShownScreen {
 }
 
 class MainActivity : ComponentActivity() {
+    private val gameViewModel by viewModels<GameObjectViewModel>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             var shownScreen by remember { mutableStateOf(ShownScreen.CREATE) }
-            var name by remember { mutableStateOf("") }
+            val (name, setName) = remember { mutableStateOf("z") }
+            val (gameCode, setGameCode) = remember { mutableStateOf("") }
 
             BeanAndroidTheme {
                 when (shownScreen) {
                     ShownScreen.CREATE -> {
-                        CreateView(name)
+                        CreateView(gameViewModel, name, setName, gameCode, setGameCode)
                     }
 
                     ShownScreen.JOIN -> {
-                        JoinView()
+                        JoinView(gameViewModel)//, accessCode, name)
                     }
 
                     ShownScreen.GAME -> {
@@ -55,33 +63,50 @@ class MainActivity : ComponentActivity() {
 }//mainactivity
 
 @Composable
-fun CreateView(name: String) {
-    Column() {
+fun CreateView(gameViewModel: GameObjectViewModel, name: String, setName: (String) -> Unit, gameCode: String, setGameCode: (String) -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceEvenly,
+        modifier = Modifier.fillMaxHeight()
+    ) {
         Text(text = "Bean Game!")
-        TextField(value = "z", onValueChange = {}, label = {
+        TextField(value = name, onValueChange = setName, label = {
             Text(text = "Name")
         })
-        Button(onClick = { /*TODO*/ }) {
+        Button(onClick = {
+            gameViewModel.createGame(name)
+        }) {
             Text(text = "Create Game")
         }
-        Row() {
-            Button(onClick = { /*TODO*/ }) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Button(onClick = {
+                gameViewModel.joinGame(gameCode, name)
+            }) {
                 Text(text = "Join Game:")
             }
-            TextField(value = "1", onValueChange = {}, label = {
-                Text(text = "Game Code")
-            })
+            TextField(
+                value = gameCode,
+                onValueChange = setGameCode,
+                label = {
+                    Text(text = "Game Code")
+                },
+                modifier = Modifier.padding()
+            )
         }//row
     }//column
 }//createview
 
 @Composable
-fun JoinView() {
+fun JoinView(gameViewModel: GameObjectViewModel) {
     Column() {
         Text(text = "Game Setup!")
         Text(text = "Game Code: ")
         //List of players on gameObject
-        Button(onClick = { /*TODO*/ }) {
+        Button(onClick = {
+            gameViewModel.startGame("1")
+        }) {
             Text(text = "Start Game:")
         }
     }//column

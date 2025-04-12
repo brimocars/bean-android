@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mocarski.brian.beanandroid.data.api.Api
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
+import com.mocarski.brian.beanandroid.data.api.model.PlayerWithName
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class GameObjectViewModel: ViewModel() {
@@ -14,19 +16,74 @@ class GameObjectViewModel: ViewModel() {
     val gameObject: GameObject? get() = _gameObject.value
 
     var errorMessage: String by mutableStateOf("")
-    var loading: Boolean by mutableStateOf(false)
 
-    fun getGameObject(gameId: String) {
+    fun getGameObject() {
         viewModelScope.launch {
             val apiService = Api.getInstance()
-            try {
-                loading = true
-                _gameObject.value = Api.getInstance().getGame(gameId)
-            } catch (e: Exception) {
-                errorMessage = e.message.toString()
-            } finally {
-                loading = false
+            while (true) {
+                try {
+                    println("Getting game")
+                    _gameObject.value = apiService.getGame(gameObject?.gameId!!)
+                } catch (e: Exception) {
+                    println(e.message.toString())
+                    errorMessage = e.message.toString()
+                }
+                delay(5000)
             }
         }//launch
     }//getGameObject
+
+    fun createGame (name: String) {
+        viewModelScope.launch {
+            val apiService = Api.getInstance()
+            try {
+                println("Creating game")
+                _gameObject.value = apiService.createGame(PlayerWithName(name))
+            } catch (e: Exception) {
+                println(e.message.toString())
+                errorMessage = e.message.toString()
+
+            }
+        }//launch
+    }//createGame
+
+    fun joinGame (gameCode: String, name: String) {
+        viewModelScope.launch {
+            val apiService = Api.getInstance()
+            try {
+                println("Joining game")
+                _gameObject.value = apiService.joinGame(gameCode, PlayerWithName(name))
+            } catch (e: Exception) {
+                println(e.message.toString())
+                errorMessage = e.message.toString()
+            }
+        }//launch
+    }//joinGame
+
+    fun startGame (gameId: String) {
+        viewModelScope.launch {
+            val apiService = Api.getInstance()
+            try {
+                println("")
+                _gameObject.value = apiService.startGame(gameId)
+            } catch (e: Exception) {
+                println(e.message.toString())
+                errorMessage = e.message.toString()
+            }
+        }//launch
+    }//
+
+//    fun a (gameCode: String, name: String) {
+//        viewModelScope.launch {
+//            val apiService = Api.getInstance()
+//            try {
+//                println("")
+//                _gameObject.value = apiService.
+//            } catch (e: Exception) {
+//                println(e.message.toString())
+//                errorMessage = e.message.toString()
+//            }
+//        }//launch
+//    }//
+
 }//gameobjectviewmodel
