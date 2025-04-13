@@ -8,11 +8,17 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -22,15 +28,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mocarski.apidemo2.data.api.model.GameObjectViewModel
+import com.mocarski.apidemo2.data.api.model.ShownScreen
+import com.mocarski.brian.beanandroid.ui.OtherPlayer
+import com.mocarski.brian.beanandroid.ui.PlayArea
+import com.mocarski.brian.beanandroid.ui.PlayerHandView
+import com.mocarski.brian.beanandroid.ui.PlayerView
+import com.mocarski.brian.beanandroid.ui.ViewTrades
 import com.mocarski.brian.beanandroid.ui.theme.BeanAndroidTheme
-
-enum class ShownScreen {
-    CREATE,
-    JOIN,
-    GAME,
-}
 
 class MainActivity : ComponentActivity() {
     private val gameViewModel by viewModels<GameObjectViewModel>()
@@ -39,22 +49,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            var shownScreen by remember { mutableStateOf(ShownScreen.CREATE) }
             val (name, setName) = remember { mutableStateOf("z") }
             val (gameCode, setGameCode) = remember { mutableStateOf("") }
 
             BeanAndroidTheme {
-                when (shownScreen) {
+                when (gameViewModel.shownScreen) {
                     ShownScreen.CREATE -> {
                         CreateView(gameViewModel, name, setName, gameCode, setGameCode)
                     }
 
                     ShownScreen.JOIN -> {
-                        JoinView(gameViewModel)//, accessCode, name)
+                        JoinView(gameViewModel)
                     }
 
                     ShownScreen.GAME -> {
-                        GameView()
+                        GameView(gameViewModel, name)
                     }
                 }//when
             }//beanandroidtheme
@@ -63,13 +72,22 @@ class MainActivity : ComponentActivity() {
 }//mainactivity
 
 @Composable
-fun CreateView(gameViewModel: GameObjectViewModel, name: String, setName: (String) -> Unit, gameCode: String, setGameCode: (String) -> Unit) {
+fun CreateView(
+    gameViewModel: GameObjectViewModel,
+    name: String,
+    setName: (String) -> Unit,
+    gameCode: String,
+    setGameCode: (String) -> Unit
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceEvenly,
         modifier = Modifier.fillMaxHeight()
     ) {
-        Text(text = "Bean Game!")
+        Text(
+            text = "Bean Game!",
+            fontSize = 30.sp
+        )
         TextField(value = name, onValueChange = setName, label = {
             Text(text = "Name")
         })
@@ -98,25 +116,75 @@ fun CreateView(gameViewModel: GameObjectViewModel, name: String, setName: (Strin
     }//column
 }//createview
 
-@Composable
-fun JoinView(gameViewModel: GameObjectViewModel) {
-    Column() {
-        Text(text = "Game Setup!")
-        Text(text = "Game Code: ")
-        //List of players on gameObject
-        Button(onClick = {
-            gameViewModel.startGame("1")
-        }) {
-            Text(text = "Start Game:")
-        }
-    }//column
-}
 
 @Composable
-fun GameView() {
-    // loop
-//    OtherPlayer()
-//    Play()
-//    Player()
-//    PlayerHand()
+fun JoinView(gameViewModel: GameObjectViewModel) {
+    gameViewModel.startGamePolling()
+    Column(
+        modifier = Modifier.fillMaxHeight(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Game Setup!",
+            fontSize = 36.sp
+        )
+        Spacer(Modifier.height(30.dp))
+        Text(
+            text = "Game Code: ${gameViewModel.gameObject!!.gameCode}",
+            fontSize = 30.sp
+        )
+        Spacer(Modifier.height(30.dp))
+
+
+        for (player in gameViewModel.gameObject!!.players) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                contentColor = Color.Black,
+                shape = RectangleShape,
+                color = Color.LightGray,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = player.name,
+                        fontSize = 30.sp
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(30.dp))
+        Button(onClick = {
+            gameViewModel.startGame()
+        }) {
+            Text(text = "Start Game")
+        }
+    }//column
+}//joinview
+
+@Composable
+fun GameView(gameViewModel: GameObjectViewModel, playerName: String) {
+    val (showTrades, setShowTrades) = remember { mutableStateOf(false) }
+
+    if (showTrades) {
+        ViewTrades(gameViewModel, playerName, setShowTrades)
+        return
+    }//showTrades
+
+    Column(
+        modifier = Modifier
+            .height(300.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        val otherPlayers = gameViewModel.gameObject!!.players.filter { it.name != playerName }
+        for (otherPlayer in otherPlayers) {
+            OtherPlayer(otherPlayer, gameViewModel)
+        }
+        PlayArea(gameViewModel, playerName, setShowTrades)
+        PlayerView(gameViewModel.gameObject!!)
+        PlayerHandView(gameViewModel.gameObject!!)
+    }
 }

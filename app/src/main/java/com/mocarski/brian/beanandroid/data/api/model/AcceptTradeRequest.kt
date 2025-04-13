@@ -5,6 +5,6 @@ import com.google.gson.annotations.SerializedName
 data class AcceptTradeRequest(
     @SerializedName("tradeId")
     val tradeId: String,
-    @SerializedName("choseCardsToReceive")
+    @SerializedName("chosenCardsToReceive")
     val chosenCardsToReceive: CardsToGive
 )

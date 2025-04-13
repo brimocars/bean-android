@@ -3,6 +3,7 @@ package com.mocarski.brian.beanandroid.data.api
 import com.mocarski.brian.beanandroid.data.api.model.AcceptTradeRequest
 import com.mocarski.brian.beanandroid.data.api.model.FieldIndex
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
+import com.mocarski.brian.beanandroid.data.api.model.GameResponse
 import com.mocarski.brian.beanandroid.data.api.model.HarvestRequest
 import com.mocarski.brian.beanandroid.data.api.model.PlantFromPlantNowRequest
 import com.mocarski.brian.beanandroid.data.api.model.PlayerWithName
@@ -22,82 +23,84 @@ const val BASE_URL = "https://brimocars-bean-game-13b7ef772680.herokuapp.com/"
 
 interface Api {
     @GET("game")
-    suspend fun getGame(gameId: String): GameObject
+    suspend fun getGame(
+        @Query("gameId") gameId: String
+    ): GameResponse
 
     //setup
     @POST("setup")
     suspend fun createGame(
         @Body body: PlayerWithName
-    ): GameObject
+    ): GameResponse
 
     @POST("setup")
     suspend fun joinGame(
         @Query("gameCode") gameCode: String,
         @Body body: PlayerWithName
-    ): GameObject
+    ): GameResponse
 
     @POST("setup/start")
     suspend fun startGame(
         @Query("gameId") gameId: String,
-    ): GameObject
+    ): GameResponse
 
     @DELETE("setup/leave")
     suspend fun leaveGame(
         @Query("gameId") gameId: String,
         @Body body: PlayerWithName
-    ): GameObject
+    ): GameResponse
 
     @DELETE("setup")
     suspend fun deleteGame(
         @Query("gameId") gameId: String,
-    ): GameObject
+    ): GameResponse
 
     //play
     @POST("play/plantFromHand")
     suspend fun plantFromHand(
         @Query("gameId") gameId: String,
         @Body body: FieldIndex
-    ): GameObject
+    ): GameResponse
 
     @POST("play/turn")
     suspend fun turn(
         @Query("gameId") gameId: String,
-    ): GameObject
+    ): GameResponse
 
     @POST("play/trade/offer")
     suspend fun offerTrade(
         @Query("gameId") gameId: String,
         @Body body: Trade
-    ): GameObject
+    ): GameResponse
 
     @POST("play/trade/accept")
     suspend fun acceptTrade(
         @Query("gameId") gameId: String,
         @Body body: AcceptTradeRequest
-    ): GameObject
+    ): GameResponse
 
     @DELETE("play/trade")
     suspend fun denyTrade(
         @Query("gameId") gameId: String,
         @Body body: TradeId
-    ): GameObject
+    ): GameResponse
 
     @POST("play/trade/end")
     suspend fun endTrading(
         @Query("gameId") gameId: String,
-    ): GameObject
+    ): GameResponse
 
     @POST("play/harvest")
     suspend fun harvest(
         @Query("gameId") gameId: String,
         @Body body: HarvestRequest
-    ): GameObject
+    ): GameResponse
 
     @POST("play/plantFromPlantNow")
     suspend fun plantFromPlantNow(
         @Query("gameId") gameId: String,
         @Body body: PlantFromPlantNowRequest
-    ): GameObject
+    ): GameResponse
 
     companion object {
         val interceptor = HttpLoggingInterceptor().apply {
