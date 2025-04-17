@@ -1,12 +1,16 @@
 package com.mocarski.brian.beanandroid.ui
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +40,7 @@ import com.mocarski.brian.beanandroid.data.api.model.Field
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
 import com.mocarski.brian.beanandroid.data.api.model.Player
 import com.mocarski.brian.beanandroid.data.api.model.TradeId
+import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
 @Composable
 fun ViewTrades(
@@ -51,7 +57,7 @@ fun ViewTrades(
             )
         )
     }
-    val player = gameObject.players.find { it.name == playerName }!!
+    val player = findPlayer(gameObject, playerName)
 
     Column() {
         Row(
@@ -124,24 +130,34 @@ fun ViewTrades(
 @Composable
 fun OtherPlayer(otherPlayer: Player, gameViewModel: GameObjectViewModel) {
     val gameObject: GameObject = gameViewModel.gameObject!!
-    Row {
-        if (otherPlayer.index == gameObject.activePlayerIndex) {
-            Icon(
-                Icons.Filled.PlayArrow,
-                contentDescription = "Play",
-                tint = Color.Green
-            )//icon
-        }
-        Text(text = otherPlayer.name)
-    }//toprow
-
-    Row(
-
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .background(Color.LightGray),
     ) {
-        HiddenCardStack(otherPlayer.hand.size)
-        Spacer(Modifier.width(30.dp))
-        PlayerFields(otherPlayer.fields)
-    }//Cards
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+        ) {
+            if (otherPlayer.index == gameObject.activePlayerIndex) {
+                Icon(
+                    Icons.Filled.PlayArrow,
+                    contentDescription = "Play",
+                    tint = Color.Green
+                )//icon
+            }
+            Text(text = otherPlayer.name)
+        }//toprow
+
+        Row(
+
+        ) {
+            HiddenCardStack(otherPlayer.hand.size)
+            Spacer(Modifier.width(30.dp))
+            PlayerFields(otherPlayer.fields)
+        }//Cards
+    }
 }
 
 @Composable
@@ -180,14 +196,57 @@ fun PlayArea(
 }
 
 @Composable
-fun PlayerView(gameObject: GameObject) {
+fun PlayerView(gameViewModel: GameObjectViewModel, playerName: String) {
+    val gameObject: GameObject = gameViewModel.gameObject!!
+    val player = findPlayer(gameObject, playerName)
 
+    Row(
+        modifier = Modifier
+            .background(Color.Green)
+            .fillMaxWidth()
+    ) {
+        PlayerFields(player.fields)
+        Spacer(Modifier.width(30.dp))
+        Column {
+            Text("Money")
+            HiddenCardStack(player.money)
+        }
+    }
 }
 
 @Composable
-fun PlayerHandView(gameObject: GameObject) {
+fun PlayerHandView(gameViewModel: GameObjectViewModel, playerName: String) {
+    val gameObject: GameObject = gameViewModel.gameObject!!
+    val player = findPlayer(gameObject, playerName)
 
-}
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+    ) {
+        player.hand.forEachIndexed { index, card ->
+            if (index == 0 && isPlayerActive(
+                    player,
+                    gameObject.activePlayerIndex!!
+                ) && gameObject.phase == "plant"
+            ) {
+                Card(
+                    card, Modifier
+                        .animateContentSize()
+                        .height(77.dp) //add animation thing here
+                        .width(55.dp)
+                )
+            } else {
+                Card(
+                    card, Modifier
+                        .animateContentSize()
+                        .height(77.dp) //add animation thing here
+                        .width(55.dp)
+                )
+            }
+        }//foreachindexed
+    }//row
+}//playerhandview
 
 @Composable
 fun PlayerFields(fields: List<Field>) {
@@ -199,20 +258,25 @@ fun PlayerFields(fields: List<Field>) {
 @Composable
 fun PlantedCardView(field: Field) {
     Column(
-
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(5.dp)
     ) {
         Text(text = field.amount.toString())
-        Card(field.card)
+        Card(
+            field.card,
+            Modifier
+                .width(55.dp)
+                .height(77.dp),
+        )
     }
 }
 
 @Composable
-fun Card(card: Card?) {
+fun Card(card: Card?, modifier: Modifier = Modifier) {
     Surface(
-        modifier = Modifier
-            .width(55.dp)
-            .height(77.dp),
-        color = Color.DarkGray,
+        modifier = modifier,
+        color = Color(0xFFAAAAAA),
         contentColor = Color.Black
     ) {
         if (card == null) {
@@ -271,4 +335,12 @@ fun cardToSelectableCard(card: Card): SelectableCard {
 
 fun selectableCardToCard(card: SelectableCard): Card {
     return Card(card.amountInDeck, card.amountToMoney, card.name)
+}
+
+fun findPlayer(gameObject: GameObject, playerName: String): Player {
+    return gameObject.players.find { it.name == playerName }!!
+}
+
+fun isPlayerActive(player: Player, activePlayerIndex: Int): Boolean {
+    return player.index == activePlayerIndex
 }

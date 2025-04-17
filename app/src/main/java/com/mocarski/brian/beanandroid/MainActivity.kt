@@ -179,12 +179,16 @@ fun GameView(gameViewModel: GameObjectViewModel, playerName: String) {
             .height(300.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        Spacer(modifier = Modifier.height(30.dp))
         val otherPlayers = gameViewModel.gameObject!!.players.filter { it.name != playerName }
         for (otherPlayer in otherPlayers) {
             OtherPlayer(otherPlayer, gameViewModel)
+            Spacer(modifier = Modifier.height(10.dp))
         }
-        PlayArea(gameViewModel, playerName, setShowTrades)
-        PlayerView(gameViewModel.gameObject!!)
-        PlayerHandView(gameViewModel.gameObject!!)
+    }
+    Column {
+//        PlayArea(gameViewModel, playerName, setShowTrades)
+//        PlayerView(gameViewModel, playerName)
+//        PlayerHandView(gameViewModel, playerName)
     }
 }
