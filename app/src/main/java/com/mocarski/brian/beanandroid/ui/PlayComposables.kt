@@ -1,6 +1,12 @@
 package com.mocarski.brian.beanandroid.ui
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateValue
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -13,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
@@ -25,13 +30,18 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mocarski.apidemo2.data.api.model.GameObjectViewModel
 import com.mocarski.brian.beanandroid.data.api.model.AcceptTradeRequest
 import com.mocarski.brian.beanandroid.data.api.model.Card
@@ -139,6 +149,7 @@ fun OtherPlayer(otherPlayer: Player, gameViewModel: GameObjectViewModel) {
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ) {
             if (otherPlayer.index == gameObject.activePlayerIndex) {
                 Icon(
@@ -147,7 +158,10 @@ fun OtherPlayer(otherPlayer: Player, gameViewModel: GameObjectViewModel) {
                     tint = Color.Green
                 )//icon
             }
-            Text(text = otherPlayer.name)
+            Text(
+                text = otherPlayer.name,
+                fontSize = 30.sp,
+            )
         }//toprow
 
         Row(
@@ -167,7 +181,13 @@ fun PlayArea(
     setShowTrades: (Boolean) -> Unit
 ) {
     val gameObject: GameObject = gameViewModel.gameObject!!
-    Row() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White),
+    ) {
         Column() {
             if (gameObject.phase == "trade") {
                 OutlinedButton(onClick = {
@@ -183,12 +203,13 @@ fun PlayArea(
                 }
             }
         }//buttons
-
-        Column {
+        Spacer(modifier = Modifier.width(30.dp))
+        Column() {
             Text("Draw")
             HiddenCardStack(gameObject.draw!!.size)
         }
-        Column {
+        Spacer(modifier = Modifier.width(10.dp))
+        Column() {
             Text("Discard")
             HiddenCardStack(gameObject.discard!!.size)
         }
@@ -202,8 +223,11 @@ fun PlayerView(gameViewModel: GameObjectViewModel, playerName: String) {
 
     Row(
         modifier = Modifier
-            .background(Color.Green)
-            .fillMaxWidth()
+            .background(Color(0.7f, 0.9f, 0.7f))
+            .height(200.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         PlayerFields(player.fields)
         Spacer(Modifier.width(30.dp))
@@ -219,11 +243,41 @@ fun PlayerHandView(gameViewModel: GameObjectViewModel, playerName: String) {
     val gameObject: GameObject = gameViewModel.gameObject!!
     val player = findPlayer(gameObject, playerName)
 
+    // from gemini
+    var isLarge by remember { mutableStateOf(true) }
+    val targetHeight: Dp = if (isLarge) 98.dp else 77.dp
+    val targetWidth: Dp = if (isLarge) 70.dp else 55.dp
+    val animatedHeight by animateDpAsState(
+        targetValue = targetHeight,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000),
+        ),
+        label = "heightAnimation"
+    )
+    val animatedWidth by animateDpAsState(
+        targetValue = targetWidth,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000),
+        ),
+        label = "heightAnimation"
+    )
+    LaunchedEffect(key1 = true) {
+        while (true) {
+            isLarge = !isLarge
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
     Row(
         modifier = Modifier
+            .background(Color(0.95f, 0.95f, 0.95f))
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
+            .height(90.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        Spacer(modifier = Modifier.width(10.dp))
         player.hand.forEachIndexed { index, card ->
             if (index == 0 && isPlayerActive(
                     player,
@@ -233,16 +287,18 @@ fun PlayerHandView(gameViewModel: GameObjectViewModel, playerName: String) {
                 Card(
                     card, Modifier
                         .animateContentSize()
-                        .height(77.dp) //add animation thing here
-                        .width(55.dp)
+                        .height(animatedHeight)
+                        .width(animatedWidth)
                 )
+                Spacer(modifier = Modifier.width(10.dp))
             } else {
                 Card(
                     card, Modifier
                         .animateContentSize()
-                        .height(77.dp) //add animation thing here
-                        .width(55.dp)
+                        .height(84.dp) //add animation thing here
+                        .width(65.dp)
                 )
+                Spacer(modifier = Modifier.width(10.dp))
             }
         }//foreachindexed
     }//row
@@ -266,18 +322,19 @@ fun PlantedCardView(field: Field) {
         Card(
             field.card,
             Modifier
-                .width(55.dp)
-                .height(77.dp),
+                .width(65.dp)
+                .height(84.dp),
         )
     }
 }
 
 @Composable
 fun Card(card: Card?, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        color = Color(0xFFAAAAAA),
-        contentColor = Color.Black
+    Column(
+        modifier = modifier
+            .background(Color(0xFFAAAAAA)),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (card == null) {
             Text(
@@ -294,8 +351,8 @@ fun Card(card: Card?, modifier: Modifier = Modifier) {
 fun SelectableCard(card: SelectableCard) {
     Surface(
         modifier = Modifier
-            .width(55.dp)
-            .height(77.dp)
+            .width(65.dp)
+            .height(84.dp)
             .clickable { card.isSelected = !card.isSelected },
         color = Color.Magenta,
         contentColor = Color.Black
@@ -306,25 +363,30 @@ fun SelectableCard(card: SelectableCard) {
 
 @Composable
 fun InnerCardTexts(card: Card) {
-    Column {
-        Text(text = card.name)
-        Text(text = card.amountInDeck.toString())
-        Text(text = card.amountToMoney.joinToString(separator = " "))
+    Column(
+        verticalArrangement = Arrangement.SpaceBetween,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = card.name, textAlign = TextAlign.Center)
+        Text(text = card.amountInDeck.toString(), textAlign = TextAlign.Center)
+        Text(text = card.amountToMoney.joinToString(separator = " "), textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 fun HiddenCardStack(amount: Int) {
-    Surface(
+    Column(
         modifier = Modifier
-            .width(55.dp)
-            .height(77.dp),
-        color = Color.DarkGray,
-        contentColor = Color.Black
+            .width(65.dp)
+            .height(84.dp)
+            .background(Color(0.5f, 0.5f, 0.5f)),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = amount.toString(),
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            fontSize = 30.sp,
         )
     }
 }//hiddenCardStack

@@ -176,19 +176,29 @@ fun GameView(gameViewModel: GameObjectViewModel, playerName: String) {
 
     Column(
         modifier = Modifier
-            .height(300.dp)
-            .verticalScroll(rememberScrollState())
+            .fillMaxHeight()
     ) {
-        Spacer(modifier = Modifier.height(30.dp))
-        val otherPlayers = gameViewModel.gameObject!!.players.filter { it.name != playerName }
-        for (otherPlayer in otherPlayers) {
-            OtherPlayer(otherPlayer, gameViewModel)
-            Spacer(modifier = Modifier.height(10.dp))
+        Column(
+            modifier = Modifier
+                .height(400.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Spacer(modifier = Modifier.height(30.dp))
+            val otherPlayers = gameViewModel.gameObject!!.players.filter { it.name != playerName }
+            for (otherPlayer in otherPlayers) {
+                OtherPlayer(otherPlayer, gameViewModel)
+                Spacer(modifier = Modifier.height(10.dp))
+            }
         }
-    }
-    Column {
-//        PlayArea(gameViewModel, playerName, setShowTrades)
-//        PlayerView(gameViewModel, playerName)
-//        PlayerHandView(gameViewModel, playerName)
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+        ) {
+            PlayArea(gameViewModel, playerName, setShowTrades)
+            Spacer(modifier = Modifier.height(10.dp))
+            PlayerView(gameViewModel, playerName)
+            Spacer(modifier = Modifier.height(10.dp))
+            PlayerHandView(gameViewModel, playerName)
+        }
     }
 }
