@@ -17,5 +17,7 @@ data class Player(
     @SerializedName("money")
     val money: Int,
     @SerializedName("name")
-    val name: String
+    val name: String,
+    @SerializedName("plantedThisTurn")
+    val plantedThisTurn: Int?,
 )

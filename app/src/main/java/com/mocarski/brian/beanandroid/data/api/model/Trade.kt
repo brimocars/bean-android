@@ -5,10 +5,10 @@ import com.google.gson.annotations.SerializedName
 data class Trade(
     @SerializedName("tradeId")
     val tradeId: String,
-    @SerializedName("trader")
-    val trader: String,
-    @SerializedName("tradee")
-    val tradee: String,
+    @SerializedName("traderName")
+    val traderName: String,
+    @SerializedName("tradeeName")
+    val tradeeName: String,
     @SerializedName("cardsToGive")
     val cardsToGive: CardsToGive,
     @SerializedName("cardsToReceive")

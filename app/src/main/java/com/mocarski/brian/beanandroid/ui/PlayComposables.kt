@@ -1,6 +1,8 @@
 package com.mocarski.brian.beanandroid.ui
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateValue
@@ -11,9 +13,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,13 +36,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +58,7 @@ import com.mocarski.brian.beanandroid.data.api.model.AcceptTradeRequest
 import com.mocarski.brian.beanandroid.data.api.model.Card
 import com.mocarski.brian.beanandroid.data.api.model.CardsToGive
 import com.mocarski.brian.beanandroid.data.api.model.Field
+import com.mocarski.brian.beanandroid.data.api.model.FieldIndex
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
 import com.mocarski.brian.beanandroid.data.api.model.Player
 import com.mocarski.brian.beanandroid.data.api.model.TradeId
@@ -59,17 +71,17 @@ fun ViewTrades(
     setShowTrades: (Boolean) -> Unit
 ) {
     val gameObject: GameObject = gameViewModel.gameObject!!
-    val (selectedCardsToReceive, setSelectedCardsToReceive) = remember {
-        mutableStateOf(
-            CardsToGive(
-                null,
-                null
-            )
-        )
-    }
     val player = findPlayer(gameObject, playerName)
 
-    Column() {
+    val (selectedHandIndexes, setSelectedHandIndexes) = remember { mutableStateOf(setOf<Int>()) }
+    val (selectedTurnedCardIndexes, setSelectedTurnedCardIndexes) = remember { mutableStateOf(setOf<Int>()) }
+
+    Column(
+        verticalArrangement = Arrangement.Top,
+        modifier = Modifier
+            .padding(10.dp)
+    ) {
+        Spacer(modifier = Modifier.height(30.dp))
         Row(
             horizontalArrangement = Arrangement.End
         ) {
@@ -81,57 +93,155 @@ fun ViewTrades(
             }
         }//close button row
 
+        Text(text = "Select from your hand")
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
         ) {
-            for (card in player.hand) {
-                SelectableCard(cardToSelectableCard(card))
+            for ((index, card) in player.hand.withIndex()) {
+                SelectableCard(card, isSelected = index in selectedHandIndexes) {
+                    val newSelectedHand = selectedHandIndexes.toMutableSet()
+                    if (index in newSelectedHand) newSelectedHand.remove(index) else newSelectedHand.add(
+                        index
+                    )
+                    setSelectedHandIndexes(newSelectedHand)
+                }
+                Spacer(modifier = Modifier.width(10.dp))
             }
         }//hand row
 
         if (gameObject.activePlayerIndex == player.index) {
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-            ) {
-
-            }//turned row
+            Text(text = "Select from turned cards")
+            Row() {
+                for ((index, card) in gameObject.turnedCards!!.withIndex()) {
+                    SelectableCard(card, isSelected = index in selectedTurnedCardIndexes) {
+                        val newSelectedTurnedCards = selectedTurnedCardIndexes.toMutableSet()
+                        if (index in newSelectedTurnedCards) newSelectedTurnedCards.remove(index) else newSelectedTurnedCards.add(
+                            index
+                        )
+                        setSelectedTurnedCardIndexes(newSelectedTurnedCards)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                }//turnedCards
+            }//row
         }//turned cards
 
-        val tradesForPlayer = gameObject.activeTrades!!.filter { it.tradee == playerName }
+        val tradesForPlayer = gameObject.activeTrades!!.filter { it.tradeeName == playerName }
         if (tradesForPlayer.isEmpty()) {
             setShowTrades(false)
         }
         for (trade in tradesForPlayer) {
-            Row {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 30.dp)
+                    .background(Color.LightGray)
+            ) {
+                val chosenCardsToReceive = CardsToGive(
+                    hand = selectedHandIndexes.toList(),
+                    turnedCards = selectedTurnedCardIndexes.toList()
+                )
+
+                val flatListOfChosenCardsToReceive = mutableListOf<String>()
+                if (chosenCardsToReceive.turnedCards != null) {
+                    for (cardIndex in chosenCardsToReceive.turnedCards!!) {
+                        flatListOfChosenCardsToReceive.add(gameObject.turnedCards!![cardIndex].name)
+                    }
+                }
+                if (chosenCardsToReceive.hand != null) {
+                    for (cardIndex in chosenCardsToReceive.hand!!) {
+                        flatListOfChosenCardsToReceive.add(player.hand[cardIndex].name)
+                    }
+                }
+                flatListOfChosenCardsToReceive.sort()
+                val cardsToReceive = trade.cardsToReceive.sorted()
+
+                var chosenCardsAreCorrect = false;
+                if (flatListOfChosenCardsToReceive.size == cardsToReceive.size) {
+                    chosenCardsAreCorrect = true;
+                    for (index in flatListOfChosenCardsToReceive.indices) {
+                        if (flatListOfChosenCardsToReceive[index] != cardsToReceive[index]) {
+                            chosenCardsAreCorrect = false
+                        }
+                    }
+                }
+
+                Spacer(Modifier.width(10.dp))
                 Column {
                     Button(
                         onClick = {
                             gameViewModel.acceptTrade(
                                 AcceptTradeRequest(
                                     trade.tradeId,
-                                    selectedCardsToReceive
+                                    chosenCardsToReceive
                                 )
                             )
                         },
                         colors = ButtonDefaults.buttonColors(
-                            contentColor = Color.Blue
+                            contentColor = if (chosenCardsAreCorrect) Color.Blue
+                            else Color(0.75f, 0.75f, 0.75f),
+                            containerColor = if (chosenCardsAreCorrect) Color(
+                                0.98f,
+                                0.843f,
+                                0.686f
+                            ) else Color(0.5f, 0.5f, 0.5f),
                         )
                     ) {
-                        Text("Accept Trade")
+                        Text(
+                            text = "Accept Trade",
+                            fontSize = 20.sp
+                        )
                     }//accept button
                     Button(
                         onClick = {
                             gameViewModel.denyTrade(TradeId(trade.tradeId))
                         },
                         colors = ButtonDefaults.buttonColors(
-                            contentColor = Color.Red
+                            contentColor = Color.Red,
+                            containerColor = Color(0.98f, 0.843f, 0.686f),
                         )
                     ) {
-                        Text("Deny Trade")
+                        Text(
+                            text = "Decline Trade",
+                            fontSize = 20.sp
+                        )
                     }//deny button
                 }//buttons
+                Spacer(Modifier.width(10.dp))
+
+                Column() {
+                    Text("You give:")
+                    // this is backwards because the trade is from the perspective of the offerer
+                    for (cardToGive in trade.cardsToReceive) {
+                        Text(cardToGive)
+                    }
+                }//give column
+                Spacer(Modifier.width(10.dp))
+                Column() {
+                    Text("You receive:")
+
+                    val cardNamesThatWillBeReceived = mutableListOf<String>()
+
+                    val trader = findPlayer(gameObject, trade.traderName)
+                    if (trade.cardsToGive.hand != null) {
+                        for (index in trade.cardsToGive.hand!!) {
+                            cardNamesThatWillBeReceived.add(trader.hand[index].name)
+                        }
+                    }
+                    if (trade.cardsToGive.turnedCards != null && isPlayerActive(
+                            trader,
+                            gameObject.activePlayerIndex!!
+                        )
+                    ) {
+                        for (index in trade.cardsToGive.turnedCards!!) {
+                            cardNamesThatWillBeReceived.add(gameObject.turnedCards!![index].name)
+                        }
+                    }
+
+                    for (cardToReceive in cardNamesThatWillBeReceived) {
+                        Text(cardToReceive)
+                    }
+                }//receive column
             }//traderow
         }//for trade
     }//column
@@ -169,7 +279,7 @@ fun OtherPlayer(otherPlayer: Player, gameViewModel: GameObjectViewModel) {
         ) {
             HiddenCardStack(otherPlayer.hand.size)
             Spacer(Modifier.width(30.dp))
-            PlayerFields(otherPlayer.fields)
+            PlayerFields(otherPlayer.fields, null, gameViewModel)
         }//Cards
     }
 }
@@ -181,6 +291,8 @@ fun PlayArea(
     setShowTrades: (Boolean) -> Unit
 ) {
     val gameObject: GameObject = gameViewModel.gameObject!!
+    val player = findPlayer(gameObject, playerName)
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -189,13 +301,20 @@ fun PlayArea(
             .background(Color.White),
     ) {
         Column() {
-            if (gameObject.phase == "trade") {
+            if (gameObject.phase == "plant" && isPlayerActive(
+                    player,
+                    gameObject.activePlayerIndex!!
+                ) && (player.plantedThisTurn == null || player.plantedThisTurn > 0)
+            ) {
                 OutlinedButton(onClick = {
                     gameViewModel.turn()
                 }) {
                     Text("Finish Planting")
                 }
-                val tradesForPlayer = gameObject.activeTrades!!.filter { it.tradee == playerName }
+            }
+            if (gameObject.phase == "trade") {
+                val tradesForPlayer =
+                    gameObject.activeTrades!!.filter { it.tradeeName == playerName }
                 if (tradesForPlayer.isNotEmpty()) {
                     OutlinedButton(onClick = { setShowTrades(true) }) {
                         Text("View Trades")
@@ -204,17 +323,40 @@ fun PlayArea(
             }
         }//buttons
         Spacer(modifier = Modifier.width(30.dp))
-        Column() {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text("Draw")
             HiddenCardStack(gameObject.draw!!.size)
-        }
+        }//draw
+
         Spacer(modifier = Modifier.width(10.dp))
         Column() {
             Text("Discard")
             HiddenCardStack(gameObject.discard!!.size)
-        }
-    }
-}
+        }//discard
+        Spacer(modifier = Modifier.width(20.dp))
+
+        val turnedCards = gameObject.turnedCards
+        if (turnedCards != null && turnedCards.isNotEmpty()) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "Turned Cards")
+                Row() {
+                    turnedCards.forEach { card ->
+                        CardComposable(
+                            card, Modifier
+                                .height(101.dp)
+                                .width(71.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                }//row
+            }//column
+        }//turnedcards
+    }//row
+}//playarea
 
 @Composable
 fun PlayerView(gameViewModel: GameObjectViewModel, playerName: String) {
@@ -229,9 +371,11 @@ fun PlayerView(gameViewModel: GameObjectViewModel, playerName: String) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PlayerFields(player.fields)
+        PlayerFields(player.fields, player, gameViewModel)
         Spacer(Modifier.width(30.dp))
-        Column {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text("Money")
             HiddenCardStack(player.money)
         }
@@ -243,28 +387,24 @@ fun PlayerHandView(gameViewModel: GameObjectViewModel, playerName: String) {
     val gameObject: GameObject = gameViewModel.gameObject!!
     val player = findPlayer(gameObject, playerName)
 
-    // from gemini
-    var isLarge by remember { mutableStateOf(true) }
-    val targetHeight: Dp = if (isLarge) 98.dp else 77.dp
-    val targetWidth: Dp = if (isLarge) 70.dp else 55.dp
-    val animatedHeight by animateDpAsState(
-        targetValue = targetHeight,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000),
-        ),
-        label = "heightAnimation"
-    )
-    val animatedWidth by animateDpAsState(
-        targetValue = targetWidth,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1000),
-        ),
-        label = "heightAnimation"
-    )
-    LaunchedEffect(key1 = true) {
-        while (true) {
-            isLarge = !isLarge
-            kotlinx.coroutines.delay(1000)
+    val animatedWidth = remember { Animatable(1f) }
+    val (shouldAnimate, setShouldAnimate) = remember { mutableStateOf(true) }
+
+    // from chatGPT
+    LaunchedEffect(shouldAnimate) {
+        if (shouldAnimate) {
+            while (true) {
+                animatedWidth.animateTo(
+                    targetValue = 8f,
+                    animationSpec = tween(600, easing = LinearEasing)
+                )
+                animatedWidth.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(600, easing = LinearEasing)
+                )
+            }
+        } else {
+            animatedWidth.snapTo(1f)
         }
     }
 
@@ -272,64 +412,146 @@ fun PlayerHandView(gameViewModel: GameObjectViewModel, playerName: String) {
         modifier = Modifier
             .background(Color(0.95f, 0.95f, 0.95f))
             .fillMaxWidth()
-            .height(90.dp)
+            .height(150.dp)
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Spacer(modifier = Modifier.width(10.dp))
         player.hand.forEachIndexed { index, card ->
-            if (index == 0 && isPlayerActive(
-                    player,
-                    gameObject.activePlayerIndex!!
-                ) && gameObject.phase == "plant"
+            val isPlantable = (index == 0 && isPlayerActive(
+                player,
+                gameObject.activePlayerIndex!!
+            ) && gameObject.phase == "plant")
+            Box(
+                modifier = Modifier
+                    .width(75.dp)
+                    .height(105.dp)
+                    .drawBehind {
+                        if (isPlantable) {
+                            val strokeWidth = animatedWidth.value
+                            val halfStroke = strokeWidth / 2
+                            drawRoundRect(
+                                color = Color.Red,
+                                topLeft = Offset(halfStroke, halfStroke),
+                                size = Size(
+                                    size.width - strokeWidth,
+                                    size.height - strokeWidth
+                                ),
+                                style = Stroke(width = strokeWidth)
+                            )
+                        }//isplantable
+                    },
+                contentAlignment = Alignment.Center
             ) {
-                Card(
-                    card, Modifier
-                        .animateContentSize()
-                        .height(animatedHeight)
-                        .width(animatedWidth)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-            } else {
-                Card(
-                    card, Modifier
-                        .animateContentSize()
-                        .height(84.dp) //add animation thing here
-                        .width(65.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-            }
+                if (index == 0 && isPlayerActive(
+                        player,
+                        gameObject.activePlayerIndex!!
+                    ) && gameObject.phase == "plant"
+                ) {
+                    CardComposable(
+                        card, Modifier
+                            .height(101.dp)
+                            .width(71.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                } else {
+                    CardComposable(
+                        card, Modifier
+                            .height(101.dp)
+                            .width(71.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
+            }//box
         }//foreachindexed
     }//row
 }//playerhandview
 
 @Composable
-fun PlayerFields(fields: List<Field>) {
-    for (field in fields) {
-        PlantedCardView(field)
+fun PlayerFields(fields: List<Field>, player: Player?, gameViewModel: GameObjectViewModel) {
+    for ((index, field) in fields.withIndex()) {
+        PlantedCardView(field, index, player, gameViewModel)
     }
 }
 
 @Composable
-fun PlantedCardView(field: Field) {
+fun PlantedCardView(field: Field, index: Int, player: Player?, gameViewModel: GameObjectViewModel) {
+    val animatedWidth = remember { Animatable(1f) }
+    val (shouldAnimate, setShouldAnimate) = remember { mutableStateOf(true) }
+
+    val gameObject = gameViewModel.gameObject!!
+    val isThisPlayer = player != null
+
+    // from chatGPT
+    LaunchedEffect(shouldAnimate) {
+        if (shouldAnimate) {
+            while (true) {
+                animatedWidth.animateTo(
+                    targetValue = 8f,
+                    animationSpec = tween(600, easing = LinearEasing)
+                )
+                animatedWidth.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(600, easing = LinearEasing)
+                )
+            }
+        } else {
+            animatedWidth.snapTo(1f)
+        }
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .padding(5.dp)
     ) {
         Text(text = field.amount.toString())
-        Card(
-            field.card,
-            Modifier
-                .width(65.dp)
-                .height(84.dp),
-        )
+        val isPlantable = isThisPlayer && (isPlayerActive(
+            player!!,
+            gameObject.activePlayerIndex!!
+        ) && gameObject.phase == "plant"
+                && (field.card?.name == player.hand[0].name || field.card == null)
+                && (player.plantedThisTurn == null || player.plantedThisTurn < 2)
+                )
+        Box(
+            modifier = Modifier
+                .width(75.dp)
+                .height(105.dp)
+                .clickable {
+                    if (isPlantable) {
+                        gameViewModel.plantFromHand(FieldIndex(index))
+                    }
+                }
+                .drawBehind {
+                    if (isPlantable) {
+                        val strokeWidth = animatedWidth.value
+                        val halfStroke = strokeWidth / 2
+                        drawRoundRect(
+                            color = Color.Red,
+                            topLeft = Offset(halfStroke, halfStroke),
+                            size = Size(
+                                size.width - strokeWidth,
+                                size.height - strokeWidth
+                            ),
+                            style = Stroke(width = strokeWidth)
+                        )
+                    }//isplantable
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            CardComposable(
+                field.card,
+                Modifier
+                    .width(70.dp)
+                    .height(98.dp),
+            )
+        }
     }
 }
 
 @Composable
-fun Card(card: Card?, modifier: Modifier = Modifier) {
+fun CardComposable(card: Card?, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .background(Color(0xFFAAAAAA)),
@@ -345,19 +567,21 @@ fun Card(card: Card?, modifier: Modifier = Modifier) {
             InnerCardTexts(card)
         }
     }
-}//card
+}//CardComposable
 
 @Composable
-fun SelectableCard(card: SelectableCard) {
+fun SelectableCard(card: Card, isSelected: Boolean, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
-            .width(65.dp)
-            .height(84.dp)
-            .clickable { card.isSelected = !card.isSelected },
-        color = Color.Magenta,
+            .width(70.dp)
+            .height(98.dp)
+            .clickable {
+                onClick()
+            },
+        color = if (isSelected) Color.Magenta else Color.LightGray,
         contentColor = Color.Black
     ) {
-        InnerCardTexts(selectableCardToCard(card))
+        InnerCardTexts(card)
     }
 }//selectablecard
 
@@ -365,11 +589,22 @@ fun SelectableCard(card: SelectableCard) {
 fun InnerCardTexts(card: Card) {
     Column(
         verticalArrangement = Arrangement.SpaceBetween,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(70.dp)
+            .height(98.dp)
     ) {
         Text(text = card.name, textAlign = TextAlign.Center)
         Text(text = card.amountInDeck.toString(), textAlign = TextAlign.Center)
-        Text(text = card.amountToMoney.joinToString(separator = " "), textAlign = TextAlign.Center)
+        Text(
+            text = card.amountToMoney.joinToString(separator = " "),
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Visible,
+            fontSize = 15.sp,
+            modifier = Modifier
+                .padding(0.dp)
+        )
     }
 }
 
@@ -377,8 +612,8 @@ fun InnerCardTexts(card: Card) {
 fun HiddenCardStack(amount: Int) {
     Column(
         modifier = Modifier
-            .width(65.dp)
-            .height(84.dp)
+            .width(70.dp)
+            .height(98.dp)
             .background(Color(0.5f, 0.5f, 0.5f)),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -390,14 +625,6 @@ fun HiddenCardStack(amount: Int) {
         )
     }
 }//hiddenCardStack
-
-fun cardToSelectableCard(card: Card): SelectableCard {
-    return SelectableCard(card.amountInDeck, card.amountToMoney, card.name, false)
-}
-
-fun selectableCardToCard(card: SelectableCard): Card {
-    return Card(card.amountInDeck, card.amountToMoney, card.name)
-}
 
 fun findPlayer(gameObject: GameObject, playerName: String): Player {
     return gameObject.players.find { it.name == playerName }!!

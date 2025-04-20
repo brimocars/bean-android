@@ -7,5 +7,5 @@ data class Field(
     @SerializedName("amount")
     val amount: Int,
     @SerializedName("card")
-    val card: Card,
+    val card: Card?,
 )

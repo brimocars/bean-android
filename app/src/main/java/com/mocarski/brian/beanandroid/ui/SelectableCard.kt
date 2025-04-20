@@ -1,10 +1,8 @@
 package com.mocarski.brian.beanandroid.ui
 
-import com.google.gson.annotations.SerializedName
+import com.mocarski.brian.beanandroid.data.api.model.Card
 
 data class SelectableCard(
-    val amountInDeck: Int,
-    val amountToMoney: List<Int>,
-    val name: String,
+    val card: Card,
     var isSelected: Boolean
 )

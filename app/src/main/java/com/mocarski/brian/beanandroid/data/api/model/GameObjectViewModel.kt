@@ -7,11 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mocarski.brian.beanandroid.data.api.Api
 import com.mocarski.brian.beanandroid.data.api.model.AcceptTradeRequest
+import com.mocarski.brian.beanandroid.data.api.model.Card
 import com.mocarski.brian.beanandroid.data.api.model.CardsToGive
+import com.mocarski.brian.beanandroid.data.api.model.Field
 import com.mocarski.brian.beanandroid.data.api.model.FieldIndex
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
 import com.mocarski.brian.beanandroid.data.api.model.HarvestRequest
 import com.mocarski.brian.beanandroid.data.api.model.PlantFromPlantNowRequest
+import com.mocarski.brian.beanandroid.data.api.model.Player
 import com.mocarski.brian.beanandroid.data.api.model.PlayerWithName
 import com.mocarski.brian.beanandroid.data.api.model.Trade
 import com.mocarski.brian.beanandroid.data.api.model.TradeId
@@ -25,7 +28,82 @@ enum class ShownScreen {
 }
 
 class GameObjectViewModel: ViewModel() {
-    private var _gameObject = mutableStateOf<GameObject?>(null)
+    private var _gameObject = mutableStateOf<GameObject?>(GameObject(
+        gameId = "9a2735ad-2dda-4948-811f-ab33e8562f8c",
+        gameCode = "1",
+        players = listOf<Player>(
+            Player(
+                name = "z",
+                maxFields = 3,
+                hand = listOf<Card>(
+                    Card(name = "black", amountToMoney = listOf<Int>(2, 4, 5, 6), amountInDeck = 10),
+                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8),
+                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8)
+                ),
+                money = 0,
+                fields = listOf(
+                    Field(0, null),
+                    Field(0, null),
+                    Field(0, null)
+                ),
+                cardsToPlantNow = emptyList(),
+                index = 0,
+                plantedThisTurn = 1,
+            ),
+            Player(
+                name = "a",
+                maxFields = 3,
+                hand = listOf(
+                    Card(name = "black", amountToMoney = listOf<Int>(2, 4, 5, 6), amountInDeck = 10),
+                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8),
+                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8)
+                ),
+                money = 0,
+                fields = listOf(
+                    Field(0, null),
+                    Field(0, null),
+                    Field(0, null)
+                ),
+                cardsToPlantNow = emptyList(),
+                index = 1,
+                plantedThisTurn = 0,
+            ),
+            Player(
+                name = "c",
+                maxFields = 3,
+                hand = listOf(
+                    Card(name = "black", amountToMoney = listOf<Int>(2, 4, 5, 6), amountInDeck = 10),
+                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8),
+                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8)
+                ),
+                money = 0,
+                fields = listOf(
+                    Field(0, null),
+                    Field(0, null),
+                    Field(0, null)
+                ),
+                cardsToPlantNow = emptyList(),
+                index = 2,
+                plantedThisTurn = 0,
+            )
+        ),
+        activePlayerIndex = 0,
+        discard = listOf<Card>(),
+        draw = listOf<Card>(),
+        activeTrades = listOf<Trade>(),
+        isOver = false,
+        phase = "plant",
+        timesShuffled = 0,
+        turnedCards = listOf<Card>(),
+        updateId = "a2b8287d-ea48-424b-8cca-99432fc6b50a"
+    ))
+
     val gameObject: GameObject? get() = _gameObject.value
     var isRunning = false;
 
