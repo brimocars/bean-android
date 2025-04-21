@@ -1,13 +1,7 @@
 package com.mocarski.brian.beanandroid.ui
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateValue
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,14 +9,15 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
@@ -35,22 +30,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mocarski.apidemo2.data.api.model.GameObjectViewModel
@@ -60,9 +51,9 @@ import com.mocarski.brian.beanandroid.data.api.model.CardsToGive
 import com.mocarski.brian.beanandroid.data.api.model.Field
 import com.mocarski.brian.beanandroid.data.api.model.FieldIndex
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
+import com.mocarski.brian.beanandroid.data.api.model.PlantFromPlantNowRequest
 import com.mocarski.brian.beanandroid.data.api.model.Player
 import com.mocarski.brian.beanandroid.data.api.model.TradeId
-import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
 @Composable
 fun ViewTrades(
@@ -99,13 +90,13 @@ fun ViewTrades(
                 .horizontalScroll(rememberScrollState())
         ) {
             for ((index, card) in player.hand.withIndex()) {
-                SelectableCard(card, isSelected = index in selectedHandIndexes) {
+                SelectableCard(card, isSelected = index in selectedHandIndexes, {
                     val newSelectedHand = selectedHandIndexes.toMutableSet()
                     if (index in newSelectedHand) newSelectedHand.remove(index) else newSelectedHand.add(
                         index
                     )
                     setSelectedHandIndexes(newSelectedHand)
-                }
+                })
                 Spacer(modifier = Modifier.width(10.dp))
             }
         }//hand row
@@ -114,13 +105,13 @@ fun ViewTrades(
             Text(text = "Select from turned cards")
             Row() {
                 for ((index, card) in gameObject.turnedCards!!.withIndex()) {
-                    SelectableCard(card, isSelected = index in selectedTurnedCardIndexes) {
+                    SelectableCard(card, isSelected = index in selectedTurnedCardIndexes, {
                         val newSelectedTurnedCards = selectedTurnedCardIndexes.toMutableSet()
                         if (index in newSelectedTurnedCards) newSelectedTurnedCards.remove(index) else newSelectedTurnedCards.add(
                             index
                         )
                         setSelectedTurnedCardIndexes(newSelectedTurnedCards)
-                    }
+                    })
                     Spacer(modifier = Modifier.width(10.dp))
                 }//turnedCards
             }//row
@@ -144,21 +135,21 @@ fun ViewTrades(
 
                 val flatListOfChosenCardsToReceive = mutableListOf<String>()
                 if (chosenCardsToReceive.turnedCards != null) {
-                    for (cardIndex in chosenCardsToReceive.turnedCards!!) {
+                    for (cardIndex in chosenCardsToReceive.turnedCards) {
                         flatListOfChosenCardsToReceive.add(gameObject.turnedCards!![cardIndex].name)
                     }
                 }
                 if (chosenCardsToReceive.hand != null) {
-                    for (cardIndex in chosenCardsToReceive.hand!!) {
+                    for (cardIndex in chosenCardsToReceive.hand) {
                         flatListOfChosenCardsToReceive.add(player.hand[cardIndex].name)
                     }
                 }
                 flatListOfChosenCardsToReceive.sort()
                 val cardsToReceive = trade.cardsToReceive.sorted()
 
-                var chosenCardsAreCorrect = false;
+                var chosenCardsAreCorrect = false
                 if (flatListOfChosenCardsToReceive.size == cardsToReceive.size) {
-                    chosenCardsAreCorrect = true;
+                    chosenCardsAreCorrect = true
                     for (index in flatListOfChosenCardsToReceive.indices) {
                         if (flatListOfChosenCardsToReceive[index] != cardsToReceive[index]) {
                             chosenCardsAreCorrect = false
@@ -224,7 +215,7 @@ fun ViewTrades(
 
                     val trader = findPlayer(gameObject, trade.traderName)
                     if (trade.cardsToGive.hand != null) {
-                        for (index in trade.cardsToGive.hand!!) {
+                        for (index in trade.cardsToGive.hand) {
                             cardNamesThatWillBeReceived.add(trader.hand[index].name)
                         }
                     }
@@ -233,7 +224,7 @@ fun ViewTrades(
                             gameObject.activePlayerIndex!!
                         )
                     ) {
-                        for (index in trade.cardsToGive.turnedCards!!) {
+                        for (index in trade.cardsToGive.turnedCards) {
                             cardNamesThatWillBeReceived.add(gameObject.turnedCards!![index].name)
                         }
                     }
@@ -279,7 +270,9 @@ fun OtherPlayer(otherPlayer: Player, gameViewModel: GameObjectViewModel) {
         ) {
             HiddenCardStack(otherPlayer.hand.size)
             Spacer(Modifier.width(30.dp))
-            PlayerFields(otherPlayer.fields, null, gameViewModel)
+            PlayerFields(otherPlayer.fields, null, null, {}, gameViewModel)
+            Spacer(Modifier.width(10.dp))
+            CardsToPlantNow(otherPlayer.cardsToPlantNow, null, null, { })
         }//Cards
     }
 }
@@ -295,34 +288,69 @@ fun PlayArea(
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.Start,
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White),
     ) {
-        Column() {
+        Spacer(modifier = Modifier.width(5.dp))
+        Column(
+            modifier = Modifier
+                .width(70.dp)
+        ) {
             if (gameObject.phase == "plant" && isPlayerActive(
                     player,
                     gameObject.activePlayerIndex!!
                 ) && (player.plantedThisTurn == null || player.plantedThisTurn > 0)
             ) {
-                OutlinedButton(onClick = {
-                    gameViewModel.turn()
-                }) {
-                    Text("Finish Planting")
+                OutlinedButton(
+                    onClick = {
+                        gameViewModel.turn()
+                    },
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = "Finish Planting",
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
+
+            if (gameObject.phase == "trade" && isPlayerActive(
+                    player,
+                    gameObject.activePlayerIndex!!
+                ) && (player.plantedThisTurn == null || player.plantedThisTurn > 0)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        gameViewModel.endTrading()
+                    },
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = "Finish Trading",
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
             if (gameObject.phase == "trade") {
                 val tradesForPlayer =
                     gameObject.activeTrades!!.filter { it.tradeeName == playerName }
                 if (tradesForPlayer.isNotEmpty()) {
-                    OutlinedButton(onClick = { setShowTrades(true) }) {
-                        Text("View Trades")
+                    OutlinedButton(
+                        onClick = { setShowTrades(true) },
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            text = "View Trades",
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
         }//buttons
-        Spacer(modifier = Modifier.width(30.dp))
+        Spacer(modifier = Modifier.width(10.dp))
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -362,17 +390,25 @@ fun PlayArea(
 fun PlayerView(gameViewModel: GameObjectViewModel, playerName: String) {
     val gameObject: GameObject = gameViewModel.gameObject!!
     val player = findPlayer(gameObject, playerName)
+    val (selectedCardIndex, setSelectedCardIndex) = remember { mutableStateOf<Int?>(null) }
 
     Row(
         modifier = Modifier
             .background(Color(0.7f, 0.9f, 0.7f))
             .height(200.dp)
-            .fillMaxWidth(),
+            .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PlayerFields(player.fields, player, gameViewModel)
-        Spacer(Modifier.width(30.dp))
+        PlayerFields(player.fields, player, selectedCardIndex, setSelectedCardIndex, gameViewModel)
+        Spacer(Modifier.width(15.dp))
+        CardsToPlantNow(
+            player.cardsToPlantNow,
+            player,
+            selectedCardIndex,
+            setSelectedCardIndex,
+        )
+        Spacer(Modifier.width(1.dp))
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -469,14 +505,59 @@ fun PlayerHandView(gameViewModel: GameObjectViewModel, playerName: String) {
 }//playerhandview
 
 @Composable
-fun PlayerFields(fields: List<Field>, player: Player?, gameViewModel: GameObjectViewModel) {
+fun PlayerFields(
+    fields: List<Field>,
+    player: Player?,
+    selectedCardsToPlantNowIndexes: Int?,
+    setSelectedCardsToPlantNowIndexes: (Int?) -> Unit,
+    gameViewModel: GameObjectViewModel
+) {
     for ((index, field) in fields.withIndex()) {
-        PlantedCardView(field, index, player, gameViewModel)
+        PlantedCardView(field, index, player, selectedCardsToPlantNowIndexes, setSelectedCardsToPlantNowIndexes, gameViewModel)
     }
 }
 
 @Composable
-fun PlantedCardView(field: Field, index: Int, player: Player?, gameViewModel: GameObjectViewModel) {
+fun CardsToPlantNow(
+    cardsToPlantNow: List<Card>,
+    player: Player?,
+    selectedCardsToPlantNowIndexes: Int?,
+    setSelectedCardIndex: (Int) -> Unit,
+) {
+    val isThisPlayer = player != null
+
+    Column(
+        modifier = Modifier
+            .width(100.dp)
+            .height(180.dp)
+            .verticalScroll(rememberScrollState()),
+    ) {
+        for ((index, cardToPlantNow) in cardsToPlantNow.withIndex()) {
+            Row {
+                if (isThisPlayer) {
+                    SelectableCard(
+                        cardToPlantNow,
+                        isSelected = selectedCardsToPlantNowIndexes == index,
+                        onClick = { setSelectedCardIndex(index) },
+                        Modifier.rotate(-90.0f),
+                    )
+                } else {
+                    CardComposable(card = cardToPlantNow, Modifier.rotate(-90.0f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlantedCardView(
+    field: Field,
+    index: Int,
+    player: Player?,
+    selectedCardsToPlantNowIndex: Int?,
+    setSelectedCardsToPlantNowIndex: (Int?) -> Unit,
+    gameViewModel: GameObjectViewModel
+) {
     val animatedWidth = remember { Animatable(1f) }
     val (shouldAnimate, setShouldAnimate) = remember { mutableStateOf(true) }
 
@@ -504,23 +585,35 @@ fun PlantedCardView(field: Field, index: Int, player: Player?, gameViewModel: Ga
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .padding(5.dp)
+            .padding(0.dp)
     ) {
         Text(text = field.amount.toString())
-        val isPlantable = isThisPlayer && (isPlayerActive(
+        val isFirstCardFromHandPlantable = isThisPlayer && (isPlayerActive(
             player!!,
             gameObject.activePlayerIndex!!
         ) && gameObject.phase == "plant"
                 && (field.card?.name == player.hand[0].name || field.card == null)
                 && (player.plantedThisTurn == null || player.plantedThisTurn < 2)
                 )
+        val isSelectedCardToPlantNowPlantable = isThisPlayer && (isPlayerActive(
+            player!!,
+            gameObject.activePlayerIndex!!
+        )) && gameObject.phase == "end"
+                && (selectedCardsToPlantNowIndex != null && (field.card?.name == player.cardsToPlantNow[selectedCardsToPlantNowIndex!!].name || field.card == null))
+        val isPlantable = isFirstCardFromHandPlantable || isSelectedCardToPlantNowPlantable
+
         Box(
             modifier = Modifier
                 .width(75.dp)
                 .height(105.dp)
                 .clickable {
                     if (isPlantable) {
-                        gameViewModel.plantFromHand(FieldIndex(index))
+                        if (gameObject.phase == "plant") {
+                            gameViewModel.plantFromHand(FieldIndex(index))
+                        } else if (gameObject.phase == "end") {
+                            gameViewModel.plantFromPlantNow(PlantFromPlantNowRequest(index, player!!.name, player.cardsToPlantNow[selectedCardsToPlantNowIndex!!].name))
+                            setSelectedCardsToPlantNowIndex(null)
+                        }
                     }
                 }
                 .drawBehind {
@@ -570,9 +663,14 @@ fun CardComposable(card: Card?, modifier: Modifier = Modifier) {
 }//CardComposable
 
 @Composable
-fun SelectableCard(card: Card, isSelected: Boolean, onClick: () -> Unit) {
+fun SelectableCard(
+    card: Card,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .width(70.dp)
             .height(98.dp)
             .clickable {

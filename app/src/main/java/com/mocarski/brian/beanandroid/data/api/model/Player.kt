@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName
 
 data class Player(
     @SerializedName("cardsToPlantNow")
-    val cardsToPlantNow: List<Any>,
+    val cardsToPlantNow: List<Card>,
     @SerializedName("fields")
     val fields: List<Field>,
     @SerializedName("hand")
