@@ -28,8 +28,9 @@ enum class ShownScreen {
 }
 
 class GameObjectViewModel: ViewModel() {
-    private var _gameObject = mutableStateOf<GameObject?>(GameObject(
-        gameId = "9a2735ad-2dda-4948-811f-ab33e8562f8c",
+    private var _gameObject = mutableStateOf<GameObject?>(
+        GameObject(
+        gameId = "71612592-9273-4377-bd1a-0a449430643b",
         gameCode = "1",
         players = listOf<Player>(
             Player(

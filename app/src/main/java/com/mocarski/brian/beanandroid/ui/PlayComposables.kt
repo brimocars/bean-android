@@ -5,6 +5,9 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -42,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mocarski.apidemo2.data.api.model.GameObjectViewModel
@@ -54,6 +59,7 @@ import com.mocarski.brian.beanandroid.data.api.model.GameObject
 import com.mocarski.brian.beanandroid.data.api.model.PlantFromPlantNowRequest
 import com.mocarski.brian.beanandroid.data.api.model.Player
 import com.mocarski.brian.beanandroid.data.api.model.TradeId
+import kotlin.math.roundToInt
 
 @Composable
 fun ViewTrades(
@@ -125,7 +131,7 @@ fun ViewTrades(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 30.dp)
+                    .padding(horizontal = 5.dp, vertical = 30.dp)
                     .background(Color.LightGray)
             ) {
                 val chosenCardsToReceive = CardsToGive(
@@ -157,7 +163,7 @@ fun ViewTrades(
                     }
                 }
 
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.weight(1f))
                 Column {
                     Button(
                         onClick = {
@@ -198,18 +204,18 @@ fun ViewTrades(
                         )
                     }//deny button
                 }//buttons
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.weight(1f))
 
                 Column() {
-                    Text("You give:")
+                    Text("Give:")
                     // this is backwards because the trade is from the perspective of the offerer
                     for (cardToGive in trade.cardsToReceive) {
                         Text(cardToGive)
                     }
                 }//give column
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.weight(1f))
                 Column() {
-                    Text("You receive:")
+                    Text("Receive:")
 
                     val cardNamesThatWillBeReceived = mutableListOf<String>()
 
@@ -233,6 +239,7 @@ fun ViewTrades(
                         Text(cardToReceive)
                     }
                 }//receive column
+                Spacer(Modifier.weight(1f))
             }//traderow
         }//for trade
     }//column
@@ -268,11 +275,14 @@ fun OtherPlayer(otherPlayer: Player, gameViewModel: GameObjectViewModel) {
         Row(
 
         ) {
+            Spacer(Modifier.width(1.dp))
             HiddenCardStack(otherPlayer.hand.size)
-            Spacer(Modifier.width(30.dp))
+            Spacer(Modifier.weight(1f))
             PlayerFields(otherPlayer.fields, null, null, {}, gameViewModel)
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.weight(1f))
             CardsToPlantNow(otherPlayer.cardsToPlantNow, null, null, { })
+            Spacer(Modifier.width(1.dp))
+
         }//Cards
     }
 }
@@ -458,7 +468,7 @@ fun PlayerHandView(gameViewModel: GameObjectViewModel, playerName: String) {
             val isPlantable = (index == 0 && isPlayerActive(
                 player,
                 gameObject.activePlayerIndex!!
-            ) && gameObject.phase == "plant")
+            ) && gameObject.phase == "plant" && (player.plantedThisTurn == null || player.plantedThisTurn < 2))
             Box(
                 modifier = Modifier
                     .width(75.dp)
@@ -513,7 +523,14 @@ fun PlayerFields(
     gameViewModel: GameObjectViewModel
 ) {
     for ((index, field) in fields.withIndex()) {
-        PlantedCardView(field, index, player, selectedCardsToPlantNowIndexes, setSelectedCardsToPlantNowIndexes, gameViewModel)
+        PlantedCardView(
+            field,
+            index,
+            player,
+            selectedCardsToPlantNowIndexes,
+            setSelectedCardsToPlantNowIndexes,
+            gameViewModel
+        )
     }
 }
 
@@ -560,6 +577,8 @@ fun PlantedCardView(
 ) {
     val animatedWidth = remember { Animatable(1f) }
     val (shouldAnimate, setShouldAnimate) = remember { mutableStateOf(true) }
+    var (cardOffset, setCardOffset) = remember { mutableStateOf(0f) }
+
 
     val gameObject = gameViewModel.gameObject!!
     val isThisPlayer = player != null
@@ -611,7 +630,13 @@ fun PlantedCardView(
                         if (gameObject.phase == "plant") {
                             gameViewModel.plantFromHand(FieldIndex(index))
                         } else if (gameObject.phase == "end") {
-                            gameViewModel.plantFromPlantNow(PlantFromPlantNowRequest(index, player!!.name, player.cardsToPlantNow[selectedCardsToPlantNowIndex!!].name))
+                            gameViewModel.plantFromPlantNow(
+                                PlantFromPlantNowRequest(
+                                    index,
+                                    player!!.name,
+                                    player.cardsToPlantNow[selectedCardsToPlantNowIndex!!].name
+                                )
+                            )
                             setSelectedCardsToPlantNowIndex(null)
                         }
                     }
@@ -633,15 +658,31 @@ fun PlantedCardView(
                 },
             contentAlignment = Alignment.Center
         ) {
+            // TODO: wrap this in a box and add the harvest button
             CardComposable(
                 field.card,
                 Modifier
                     .width(70.dp)
-                    .height(98.dp),
-            )
-        }
-    }
-}
+                    .height(98.dp)
+                    .offset { IntOffset(0, cardOffset.roundToInt()) }
+                    .draggable(
+                        orientation = Orientation.Vertical,
+                        state = rememberDraggableState { delta ->
+                            if (field.card != null) {
+                                if (cardOffset + delta < 0) {
+                                    setCardOffset(0f)
+                                } else if (cardOffset + delta > 50) {
+                                    setCardOffset(50f)
+                                } else {
+                                    setCardOffset(cardOffset + delta)
+                                }
+                            }
+                        }//state
+                    ),//draggable
+            )//cardcomposable
+        }//box
+    }//column
+}//plantedcardview
 
 @Composable
 fun CardComposable(card: Card?, modifier: Modifier = Modifier) {
