@@ -28,4 +28,6 @@ data class GameObject(
     val turnedCards: List<Card>?,
     @SerializedName("updateId")
     val updateId: String,
+    @SerializedName("uniqueCardsInDeck")
+    val uniqueCardsInDeck: UniqueCardsInDeck,
 )

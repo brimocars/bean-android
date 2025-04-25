@@ -36,6 +36,7 @@ import com.mocarski.brian.beanandroid.data.api.model.Field
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
 import com.mocarski.brian.beanandroid.data.api.model.Player
 import com.mocarski.brian.beanandroid.data.api.model.Trade
+import com.mocarski.brian.beanandroid.ui.OfferTrade
 import com.mocarski.brian.beanandroid.ui.OtherPlayer
 import com.mocarski.brian.beanandroid.ui.PlayArea
 import com.mocarski.brian.beanandroid.ui.PlayerHandView
@@ -170,11 +171,17 @@ fun JoinView(gameViewModel: GameObjectViewModel) {
 fun GameView(gameViewModel: GameObjectViewModel, playerName: String) {
     gameViewModel.startGamePolling()
     val (showTrades, setShowTrades) = remember { mutableStateOf(false) }
+    val (offerTradeTarget, setOfferTradeTarget) = remember { mutableStateOf("") }
 
     if (showTrades) {
         ViewTrades(gameViewModel, playerName, setShowTrades)
         return
     }//showTrades
+
+    if (offerTradeTarget.isNotEmpty()) {
+        OfferTrade(gameViewModel, playerName, offerTradeTarget, setOfferTradeTarget)
+        return
+    }//showOfferTrade
 
     Column(
         modifier = Modifier
@@ -187,8 +194,9 @@ fun GameView(gameViewModel: GameObjectViewModel, playerName: String) {
         ) {
             Spacer(modifier = Modifier.height(30.dp))
             val otherPlayers = gameViewModel.gameObject!!.players.filter { it.name != playerName }
+            val thisPlayer = gameViewModel.gameObject!!.players.find { it.name == playerName }
             for (otherPlayer in otherPlayers) {
-                OtherPlayer(otherPlayer, gameViewModel)
+                OtherPlayer(otherPlayer, gameViewModel, thisPlayer!!, setOfferTradeTarget)
                 Spacer(modifier = Modifier.height(10.dp))
             }
         }

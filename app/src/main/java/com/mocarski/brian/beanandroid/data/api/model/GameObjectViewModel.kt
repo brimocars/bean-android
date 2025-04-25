@@ -13,11 +13,13 @@ import com.mocarski.brian.beanandroid.data.api.model.Field
 import com.mocarski.brian.beanandroid.data.api.model.FieldIndex
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
 import com.mocarski.brian.beanandroid.data.api.model.HarvestRequest
+import com.mocarski.brian.beanandroid.data.api.model.OfferTradeRequest
 import com.mocarski.brian.beanandroid.data.api.model.PlantFromPlantNowRequest
 import com.mocarski.brian.beanandroid.data.api.model.Player
 import com.mocarski.brian.beanandroid.data.api.model.PlayerWithName
 import com.mocarski.brian.beanandroid.data.api.model.Trade
 import com.mocarski.brian.beanandroid.data.api.model.TradeId
+import com.mocarski.brian.beanandroid.data.api.model.UniqueCardsInDeck
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -29,81 +31,83 @@ enum class ShownScreen {
 
 class GameObjectViewModel: ViewModel() {
     private var _gameObject = mutableStateOf<GameObject?>(
-        GameObject(
-        gameId = "71612592-9273-4377-bd1a-0a449430643b",
-        gameCode = "1",
-        players = listOf<Player>(
-            Player(
-                name = "z",
-                maxFields = 3,
-                hand = listOf<Card>(
-                    Card(name = "black", amountToMoney = listOf<Int>(2, 4, 5, 6), amountInDeck = 10),
-                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8),
-                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
-                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
-                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8)
-                ),
-                money = 0,
-                fields = listOf(
-                    Field(0, null),
-                    Field(0, null),
-                    Field(0, null)
-                ),
-                cardsToPlantNow = emptyList(),
-                index = 0,
-                plantedThisTurn = 1,
-            ),
-            Player(
-                name = "a",
-                maxFields = 3,
-                hand = listOf(
-                    Card(name = "black", amountToMoney = listOf<Int>(2, 4, 5, 6), amountInDeck = 10),
-                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8),
-                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
-                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
-                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8)
-                ),
-                money = 0,
-                fields = listOf(
-                    Field(0, null),
-                    Field(0, null),
-                    Field(0, null)
-                ),
-                cardsToPlantNow = emptyList(),
-                index = 1,
-                plantedThisTurn = 0,
-            ),
-            Player(
-                name = "c",
-                maxFields = 3,
-                hand = listOf(
-                    Card(name = "black", amountToMoney = listOf<Int>(2, 4, 5, 6), amountInDeck = 10),
-                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8),
-                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
-                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
-                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8)
-                ),
-                money = 0,
-                fields = listOf(
-                    Field(0, null),
-                    Field(0, null),
-                    Field(0, null)
-                ),
-                cardsToPlantNow = emptyList(),
-                index = 2,
-                plantedThisTurn = 0,
-            )
-        ),
-        activePlayerIndex = 0,
-        discard = listOf<Card>(),
-        draw = listOf<Card>(),
-        activeTrades = listOf<Trade>(),
-        isOver = false,
-        phase = "plant",
-        timesShuffled = 0,
-        turnedCards = listOf<Card>(),
-        updateId = "a2b8287d-ea48-424b-8cca-99432fc6b50a"
-    ))
+        null)
+//        GameObject(
+//        gameId = "21367385-4f11-4d8b-9d5d-ff8cb900da26",
+//        gameCode = "1",
+//        players = listOf<Player>(
+//            Player(
+//                name = "z",
+//                maxFields = 3,
+//                hand = listOf<Card>(
+//                    Card(name = "black", amountToMoney = listOf<Int>(2, 4, 5, 6), amountInDeck = 10),
+//                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8),
+//                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+//                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+//                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8)
+//                ),
+//                money = 0,
+//                fields = listOf(
+//                    Field(0, null),
+//                    Field(0, null),
+//                    Field(0, null)
+//                ),
+//                cardsToPlantNow = emptyList(),
+//                index = 0,
+//                plantedThisTurn = 1,
+//            ),
+//            Player(
+//                name = "a",
+//                maxFields = 3,
+//                hand = listOf(
+//                    Card(name = "black", amountToMoney = listOf<Int>(2, 4, 5, 6), amountInDeck = 10),
+//                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8),
+//                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+//                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+//                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8)
+//                ),
+//                money = 0,
+//                fields = listOf(
+//                    Field(0, null),
+//                    Field(0, null),
+//                    Field(0, null)
+//                ),
+//                cardsToPlantNow = emptyList(),
+//                index = 1,
+//                plantedThisTurn = 0,
+//            ),
+//            Player(
+//                name = "c",
+//                maxFields = 3,
+//                hand = listOf(
+//                    Card(name = "black", amountToMoney = listOf<Int>(2, 4, 5, 6), amountInDeck = 10),
+//                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8),
+//                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+//                    Card(name = "coffee", amountToMoney = listOf<Int>(4, 7, 10, 12), amountInDeck = 24),
+//                    Card(name = "red", amountToMoney = listOf<Int>(2, 3, 4, 5), amountInDeck = 8)
+//                ),
+//                money = 0,
+//                fields = listOf(
+//                    Field(0, null),
+//                    Field(0, null),
+//                    Field(0, null)
+//                ),
+//                cardsToPlantNow = emptyList(),
+//                index = 2,
+//                plantedThisTurn = 0,
+//            )
+//        ),
+//        activePlayerIndex = 0,
+//        discard = listOf<Card>(),
+//        draw = listOf<Card>(),
+//        activeTrades = listOf<Trade>(),
+//        isOver = false,
+//        phase = "plant",
+//        timesShuffled = 0,
+//        turnedCards = listOf<Card>(),
+//        uniqueCardsInDeck = UniqueCardsInDeck(),
+//        updateId = "a2b8287d-ea48-424b-8cca-99432fc6b50a"
+//    ))
 
     val gameObject: GameObject? get() = _gameObject.value
     var isRunning = false;
@@ -232,7 +236,7 @@ class GameObjectViewModel: ViewModel() {
         }//launch
     }//turn
 
-    fun offerTrade (trade: Trade) {
+    fun offerTrade (trade: OfferTradeRequest) {
         viewModelScope.launch {
             val apiService = Api.getInstance()
             try {

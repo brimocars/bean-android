@@ -5,6 +5,7 @@ import com.mocarski.brian.beanandroid.data.api.model.FieldIndex
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
 import com.mocarski.brian.beanandroid.data.api.model.GameResponse
 import com.mocarski.brian.beanandroid.data.api.model.HarvestRequest
+import com.mocarski.brian.beanandroid.data.api.model.OfferTradeRequest
 import com.mocarski.brian.beanandroid.data.api.model.PlantFromPlantNowRequest
 import com.mocarski.brian.beanandroid.data.api.model.PlayerWithName
 import com.mocarski.brian.beanandroid.data.api.model.Trade
@@ -70,7 +71,7 @@ interface Api {
     @POST("play/trade/offer")
     suspend fun offerTrade(
         @Query("gameId") gameId: String,
-        @Body body: Trade
+        @Body body: OfferTradeRequest
     ): GameResponse
 
     @POST("play/trade/accept")

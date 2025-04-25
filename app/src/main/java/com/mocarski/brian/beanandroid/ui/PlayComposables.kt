@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -34,6 +35,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -56,10 +58,15 @@ import com.mocarski.brian.beanandroid.data.api.model.CardsToGive
 import com.mocarski.brian.beanandroid.data.api.model.Field
 import com.mocarski.brian.beanandroid.data.api.model.FieldIndex
 import com.mocarski.brian.beanandroid.data.api.model.GameObject
+import com.mocarski.brian.beanandroid.data.api.model.HarvestRequest
+import com.mocarski.brian.beanandroid.data.api.model.OfferTradeRequest
 import com.mocarski.brian.beanandroid.data.api.model.PlantFromPlantNowRequest
 import com.mocarski.brian.beanandroid.data.api.model.Player
+import com.mocarski.brian.beanandroid.data.api.model.Trade
 import com.mocarski.brian.beanandroid.data.api.model.TradeId
+import com.mocarski.brian.beanandroid.data.api.model.UniqueCardsInDeck
 import kotlin.math.roundToInt
+import kotlin.reflect.full.memberProperties
 
 @Composable
 fun ViewTrades(
@@ -246,7 +253,199 @@ fun ViewTrades(
 }//viewtrades
 
 @Composable
-fun OtherPlayer(otherPlayer: Player, gameViewModel: GameObjectViewModel) {
+fun OfferTrade(
+    gameViewModel: GameObjectViewModel,
+    playerName: String,
+    tradeeName: String,
+    setOfferTradeTarget: (String) -> Unit
+) {
+    val gameObject: GameObject = gameViewModel.gameObject!!
+    val player = findPlayer(gameObject, playerName)
+    val uniqueCardsInDeck = gameObject.uniqueCardsInDeck
+    val cardsInTheGame = remember(uniqueCardsInDeck) {
+        UniqueCardsInDeck::class.memberProperties
+            .mapNotNull { it.getter.call(uniqueCardsInDeck) as Card? }
+    }
+    val selectedCardQuantities = remember { mutableStateMapOf<Card, Int>() }
+    val (selectedHandIndexes, setSelectedHandIndexes) = remember { mutableStateOf(setOf<Int>()) }
+    val (selectedTurnedCardIndexes, setSelectedTurnedCardIndexes) = remember { mutableStateOf(setOf<Int>()) }
+
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Spacer(modifier = Modifier.height(30.dp))
+        Row(
+            horizontalArrangement = Arrangement.End
+        ) {
+            FilledIconButton(onClick = { setOfferTradeTarget("") }) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = "Close"
+                )
+            }
+        }//close button row
+
+        Row(
+
+        ) {
+            Text(
+                text = "Cards to request",
+                fontSize = 30.sp,
+            )
+        }//text row
+
+        Row (
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+        ) {
+            Spacer(Modifier.width(10.dp))
+            for (card in cardsInTheGame) {
+                val quantity = selectedCardQuantities[card] ?: 0
+                CardRequestSelector(
+                    card,
+                    quantity,
+                    { newAmount -> selectedCardQuantities[card] = newAmount })
+                Spacer(Modifier.width(10.dp))
+            }
+        }// request cards row
+
+        Text(text = "Select from your hand")
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+        ) {
+            for ((index, card) in player.hand.withIndex()) {
+                SelectableCard(card, isSelected = index in selectedHandIndexes, {
+                    val newSelectedHand = selectedHandIndexes.toMutableSet()
+                    if (index in newSelectedHand) newSelectedHand.remove(index) else newSelectedHand.add(
+                        index
+                    )
+                    setSelectedHandIndexes(newSelectedHand)
+                })
+                Spacer(modifier = Modifier.width(10.dp))
+            }
+        }//hand row
+
+        if (gameObject.activePlayerIndex == player.index) {
+            Text(text = "Select from turned cards")
+            Row() {
+                for ((index, card) in gameObject.turnedCards!!.withIndex()) {
+                    SelectableCard(card, isSelected = index in selectedTurnedCardIndexes, {
+                        val newSelectedTurnedCards = selectedTurnedCardIndexes.toMutableSet()
+                        if (index in newSelectedTurnedCards) newSelectedTurnedCards.remove(index) else newSelectedTurnedCards.add(
+                            index
+                        )
+                        setSelectedTurnedCardIndexes(newSelectedTurnedCards)
+                    })
+                    Spacer(modifier = Modifier.width(10.dp))
+                }//turnedCards
+            }//row
+        }//turned cards
+
+        Button(
+            onClick = {
+                val chosenCardsToGive = CardsToGive(
+                    hand = selectedHandIndexes.toList(),
+                    turnedCards = selectedTurnedCardIndexes.toList()
+                )
+                val chosenCardsToReceive = mutableListOf<String>()
+                val actualMap = selectedCardQuantities.toMap()
+                for ((key, value) in actualMap.entries) {
+                    for (i in 1..value) {
+                        chosenCardsToReceive.add(key.name)
+                    }
+                }
+                gameViewModel.offerTrade(
+                    OfferTradeRequest(playerName, tradeeName, chosenCardsToGive, chosenCardsToReceive )
+                )
+                setOfferTradeTarget("")
+            },
+            content = {
+                Text(
+                    text = "Offer Trade",
+                    fontSize = 20.sp
+                )
+            },
+            colors = ButtonDefaults.buttonColors(
+                contentColor = Color(red = 0.1f, green = 0.6f, blue = 0.3f),
+                containerColor = Color(0.85f, 0.85f, 0.85f),
+            ),
+        )//offer button
+    }//column
+
+}//offertrade
+
+@Composable
+fun CardRequestSelector(card: Card, amount: Int, setAmount: (Int) -> Unit) {
+    Column() {
+        CardComposable(
+            card = card, Modifier
+                .height(105.dp)
+                .width(75.dp)
+        )
+        Row(
+            modifier = Modifier.width(75.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .width(25.dp)
+                    .height(25.dp)
+                    .background(Color.Red)
+                    .clickable {
+                        if (amount > 0) {
+                            setAmount(amount - 1)
+                        }
+                    }
+            ) {
+                Text(
+                    text = "-",
+                    textAlign = TextAlign.Center,
+                    fontSize = 25.sp,
+                )
+            }// decrease
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .width(25.dp)
+                    .height(25.dp)
+            ) {
+                Text(
+                    text = "$amount",
+                    textAlign = TextAlign.Center,
+                    fontSize = 24.sp,
+                )
+            }// amount
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .width(25.dp)
+                    .height(25.dp)
+                    .background(Color.Green)
+                    .clickable {
+                        setAmount(amount + 1)
+                    }
+            ) {
+                Text(
+                    text = "+",
+                    textAlign = TextAlign.Center,
+                    fontSize = 24.sp,
+                )
+            }//increase
+        }//amount control row
+    }//column
+}//cardrequestselector
+
+@Composable
+fun OtherPlayer(
+    otherPlayer: Player,
+    gameViewModel: GameObjectViewModel,
+    thisPlayer: Player,
+    setOfferTradeTarget: (String) -> Unit
+) {
     val gameObject: GameObject = gameViewModel.gameObject!!
     Column(
         verticalArrangement = Arrangement.Center,
@@ -280,12 +479,45 @@ fun OtherPlayer(otherPlayer: Player, gameViewModel: GameObjectViewModel) {
             Spacer(Modifier.weight(1f))
             PlayerFields(otherPlayer.fields, null, null, {}, gameViewModel)
             Spacer(Modifier.weight(1f))
-            CardsToPlantNow(otherPlayer.cardsToPlantNow, null, null, { })
+            CardsToPlantNow(otherPlayer.cardsToPlantNow, null, null, { }, gameObject)
             Spacer(Modifier.width(1.dp))
 
         }//Cards
-    }
-}
+
+        val canOfferTrade =
+            (isPlayerActive(otherPlayer, gameObject.activePlayerIndex!!) || isPlayerActive(
+                thisPlayer,
+                gameObject.activePlayerIndex!!
+            )) && gameObject.phase == "trade"
+        if (canOfferTrade) {
+            Row(
+                horizontalArrangement = Arrangement.Start,
+                modifier = Modifier
+                    .offset { IntOffset(0, -120) }
+                    .fillMaxWidth()
+                    .height(30.dp)
+            ) {
+                Spacer(modifier = Modifier.width(5.dp))
+                OutlinedButton(
+                    onClick = {
+                        println(otherPlayer.name)
+                        setOfferTradeTarget(otherPlayer.name)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                    ),
+                    contentPadding = PaddingValues(horizontal = 5.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = "Offer trade",
+                        textAlign = TextAlign.Center
+                    )
+                }//button
+            }//row
+        }//canoffertrade
+    }//column
+}//otherplayer
 
 @Composable
 fun PlayArea(
@@ -311,7 +543,7 @@ fun PlayArea(
             if (gameObject.phase == "plant" && isPlayerActive(
                     player,
                     gameObject.activePlayerIndex!!
-                ) && (player.plantedThisTurn == null || player.plantedThisTurn > 0)
+                ) && (player.plantedThisTurn == null || player.plantedThisTurn > 0 || player.hand.size == 0)
             ) {
                 OutlinedButton(
                     onClick = {
@@ -406,6 +638,7 @@ fun PlayerView(gameViewModel: GameObjectViewModel, playerName: String) {
         modifier = Modifier
             .background(Color(0.7f, 0.9f, 0.7f))
             .height(200.dp)
+            .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -417,6 +650,7 @@ fun PlayerView(gameViewModel: GameObjectViewModel, playerName: String) {
             player,
             selectedCardIndex,
             setSelectedCardIndex,
+            gameObject,
         )
         Spacer(Modifier.width(1.dp))
         Column(
@@ -511,6 +745,7 @@ fun PlayerHandView(gameViewModel: GameObjectViewModel, playerName: String) {
                 }
             }//box
         }//foreachindexed
+        Spacer(modifier = Modifier.width(10.dp))
     }//row
 }//playerhandview
 
@@ -540,6 +775,7 @@ fun CardsToPlantNow(
     player: Player?,
     selectedCardsToPlantNowIndexes: Int?,
     setSelectedCardIndex: (Int) -> Unit,
+    gameObject: GameObject
 ) {
     val isThisPlayer = player != null
 
@@ -551,7 +787,7 @@ fun CardsToPlantNow(
     ) {
         for ((index, cardToPlantNow) in cardsToPlantNow.withIndex()) {
             Row {
-                if (isThisPlayer) {
+                if (isThisPlayer && gameObject.phase == "end") {
                     SelectableCard(
                         cardToPlantNow,
                         isSelected = selectedCardsToPlantNowIndexes == index,
@@ -658,28 +894,45 @@ fun PlantedCardView(
                 },
             contentAlignment = Alignment.Center
         ) {
-            // TODO: wrap this in a box and add the harvest button
-            CardComposable(
-                field.card,
-                Modifier
-                    .width(70.dp)
-                    .height(98.dp)
-                    .offset { IntOffset(0, cardOffset.roundToInt()) }
-                    .draggable(
-                        orientation = Orientation.Vertical,
-                        state = rememberDraggableState { delta ->
-                            if (field.card != null) {
-                                if (cardOffset + delta < 0) {
-                                    setCardOffset(0f)
-                                } else if (cardOffset + delta > 50) {
-                                    setCardOffset(50f)
-                                } else {
-                                    setCardOffset(cardOffset + delta)
-                                }
+            Box {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .width(70.dp)
+                        .height(30.dp)
+                        .background(Color(red = 0.9f, green = 0.61f, blue = 0.19f))
+                        .clickable {
+                            if (field.card != null && player != null) {
+                                gameViewModel.harvest(HarvestRequest(player.name, index))
+                                setCardOffset(0f)
                             }
-                        }//state
-                    ),//draggable
-            )//cardcomposable
+                        },
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text("Harvest")
+                }
+                CardComposable(
+                    field.card,
+                    Modifier
+                        .width(70.dp)
+                        .height(98.dp)
+                        .offset { IntOffset(0, cardOffset.roundToInt()) }
+                        .draggable(
+                            orientation = Orientation.Vertical,
+                            state = rememberDraggableState { delta ->
+                                if (field.card != null) {
+                                    if (cardOffset + delta < 0) {
+                                        setCardOffset(0f)
+                                    } else if (cardOffset + delta > 100) {
+                                        setCardOffset(100f)
+                                    } else {
+                                        setCardOffset(cardOffset + delta)
+                                    }
+                                }
+                            }//state
+                        ),//draggable
+                )//cardcomposable
+            }//box for harvest
         }//box
     }//column
 }//plantedcardview
