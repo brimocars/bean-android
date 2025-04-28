@@ -17,6 +17,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.POST
 import retrofit2.http.Query
 
@@ -80,7 +81,8 @@ interface Api {
         @Body body: AcceptTradeRequest
     ): GameResponse
 
-    @DELETE("play/trade")
+    // retrofit is dumb and doesn't let me send a body in a delete method. This is a workaround.
+    @HTTP(method = "DELETE", path = "play/trade", hasBody = true)
     suspend fun denyTrade(
         @Query("gameId") gameId: String,
         @Body body: TradeId

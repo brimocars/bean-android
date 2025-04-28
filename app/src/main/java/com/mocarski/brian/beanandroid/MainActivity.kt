@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -42,6 +43,7 @@ import com.mocarski.brian.beanandroid.ui.PlayArea
 import com.mocarski.brian.beanandroid.ui.PlayerHandView
 import com.mocarski.brian.beanandroid.ui.PlayerView
 import com.mocarski.brian.beanandroid.ui.ViewTrades
+import com.mocarski.brian.beanandroid.ui.findPlayer
 import com.mocarski.brian.beanandroid.ui.theme.BeanAndroidTheme
 
 class MainActivity : ComponentActivity() {
@@ -172,6 +174,31 @@ fun GameView(gameViewModel: GameObjectViewModel, playerName: String) {
     gameViewModel.startGamePolling()
     val (showTrades, setShowTrades) = remember { mutableStateOf(false) }
     val (offerTradeTarget, setOfferTradeTarget) = remember { mutableStateOf("") }
+
+    if (gameViewModel.gameObject!!.isOver != null && gameViewModel.gameObject!!.isOver!!) {
+        Column (
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            val winningPlayer: Player = findPlayer(gameViewModel.gameObject!!, gameViewModel.gameObject!!.winner!!)
+            Text(
+                text = "${gameViewModel.gameObject!!.winner} won!",
+                fontSize = 50.sp
+            )
+            Spacer(Modifier.height(30.dp))
+
+            gameViewModel.gameObject!!.players.forEach { player ->
+                Text(
+                    text = "${player.name}: ${player.money} money",
+                    fontSize = 30.sp,
+                )
+                Spacer(Modifier.height(30.dp))
+            }
+        }
+        return
+    }
 
     if (showTrades) {
         ViewTrades(gameViewModel, playerName, setShowTrades)

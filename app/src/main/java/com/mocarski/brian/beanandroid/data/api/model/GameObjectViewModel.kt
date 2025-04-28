@@ -33,7 +33,7 @@ class GameObjectViewModel: ViewModel() {
     private var _gameObject = mutableStateOf<GameObject?>(
         null)
 //        GameObject(
-//        gameId = "21367385-4f11-4d8b-9d5d-ff8cb900da26",
+//        gameId = "2a226e0c-f61c-457d-b767-0d121a85a643",
 //        gameCode = "1",
 //        players = listOf<Player>(
 //            Player(
@@ -106,7 +106,8 @@ class GameObjectViewModel: ViewModel() {
 //        timesShuffled = 0,
 //        turnedCards = listOf<Card>(),
 //        uniqueCardsInDeck = UniqueCardsInDeck(),
-//        updateId = "a2b8287d-ea48-424b-8cca-99432fc6b50a"
+//        updateId = "a2b8287d-ea48-424b-8cca-99432fc6b50a",
+//        winner = null,
 //    ))
 
     val gameObject: GameObject? get() = _gameObject.value

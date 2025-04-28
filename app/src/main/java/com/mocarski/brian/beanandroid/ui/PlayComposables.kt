@@ -291,12 +291,16 @@ fun OfferTrade(
             Text(
                 text = "Cards to request",
                 fontSize = 30.sp,
+                modifier = Modifier
+                    .padding(horizontal = 20.dp, vertical = 5.dp),
             )
         }//text row
 
+        Spacer(Modifier.height(10.dp))
         Row (
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 5.dp),
         ) {
             Spacer(Modifier.width(10.dp))
             for (card in cardsInTheGame) {
@@ -309,10 +313,24 @@ fun OfferTrade(
             }
         }// request cards row
 
-        Text(text = "Select from your hand")
+        Spacer(Modifier.height(20.dp))
+        Text(
+            text = "Cards to give",
+            fontSize = 30.sp,
+            modifier = Modifier
+                .padding(horizontal = 20.dp, vertical = 5.dp),
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = "Select from your hand",
+            fontSize = 24.sp,
+            modifier = Modifier
+                .padding(horizontal = 20.dp, vertical = 5.dp),
+        )
         Row(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 5.dp),
         ) {
             for ((index, card) in player.hand.withIndex()) {
                 SelectableCard(card, isSelected = index in selectedHandIndexes, {
@@ -327,8 +345,17 @@ fun OfferTrade(
         }//hand row
 
         if (gameObject.activePlayerIndex == player.index) {
-            Text(text = "Select from turned cards")
-            Row() {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "Select from turned cards",
+                fontSize = 24.sp,
+                modifier = Modifier
+                    .padding(horizontal = 20.dp, vertical = 5.dp),
+            )
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 20.dp, vertical = 5.dp),
+            ) {
                 for ((index, card) in gameObject.turnedCards!!.withIndex()) {
                     SelectableCard(card, isSelected = index in selectedTurnedCardIndexes, {
                         val newSelectedTurnedCards = selectedTurnedCardIndexes.toMutableSet()
@@ -342,6 +369,7 @@ fun OfferTrade(
             }//row
         }//turned cards
 
+        Spacer(modifier = Modifier.width(10.dp))
         Button(
             onClick = {
                 val chosenCardsToGive = CardsToGive(
@@ -370,6 +398,10 @@ fun OfferTrade(
                 contentColor = Color(red = 0.1f, green = 0.6f, blue = 0.3f),
                 containerColor = Color(0.85f, 0.85f, 0.85f),
             ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 5.dp),
+
         )//offer button
     }//column
 
@@ -850,11 +882,8 @@ fun PlantedCardView(
                 && (field.card?.name == player.hand[0].name || field.card == null)
                 && (player.plantedThisTurn == null || player.plantedThisTurn < 2)
                 )
-        val isSelectedCardToPlantNowPlantable = isThisPlayer && (isPlayerActive(
-            player!!,
-            gameObject.activePlayerIndex!!
-        )) && gameObject.phase == "end"
-                && (selectedCardsToPlantNowIndex != null && (field.card?.name == player.cardsToPlantNow[selectedCardsToPlantNowIndex!!].name || field.card == null))
+        val isSelectedCardToPlantNowPlantable = isThisPlayer && gameObject.phase == "end"
+                && (selectedCardsToPlantNowIndex != null && (field.card?.name == player!!.cardsToPlantNow[selectedCardsToPlantNowIndex!!].name || field.card == null))
         val isPlantable = isFirstCardFromHandPlantable || isSelectedCardToPlantNowPlantable
 
         Box(
@@ -920,7 +949,15 @@ fun PlantedCardView(
                         .draggable(
                             orientation = Orientation.Vertical,
                             state = rememberDraggableState { delta ->
-                                if (field.card != null) {
+                                var protectedBeanClause = false
+                                if (field.amount == 1) {
+                                    player!!.fields.forEachIndexed { thisIndex, thisField ->
+                                        if (thisIndex != index && thisField.amount > 1) {
+                                            protectedBeanClause = true
+                                        }
+                                    }
+                                }
+                                if (field.card != null && !protectedBeanClause) {
                                     if (cardOffset + delta < 0) {
                                         setCardOffset(0f)
                                     } else if (cardOffset + delta > 100) {

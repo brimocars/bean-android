@@ -30,4 +30,6 @@ data class GameObject(
     val updateId: String,
     @SerializedName("uniqueCardsInDeck")
     val uniqueCardsInDeck: UniqueCardsInDeck,
+    @SerializedName("winner")
+    val winner: String?
 )
